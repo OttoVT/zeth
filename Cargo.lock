@@ -7529,6 +7529,7 @@ dependencies = [
  "log",
  "reth-chainspec",
  "risc0-zkvm",
+ "serde_json",
  "tokio",
  "zeth-core",
  "zeth-guests",

@@ -108,6 +108,13 @@ pub struct BuildArgs {
     #[arg(short = 'c', long, require_equals = true, value_enum)]
     /// Which chain spec to use.
     pub chain: Option<NamedChain>,
+
+    // --- NEW ARGUMENT ---
+    #[arg(long, value_name = "OUTPUT_BASE_PATH")]
+    /// Save the generated guest input data using this base path (e.g., /path/to/input).
+    /// Two files will be created: <OUTPUT_BASE_PATH>.rkyv.bin and <OUTPUT_BASE_PATH>.chain.bin
+    pub save_input: Option<PathBuf>,
+    // --- END NEW ARGUMENT ---
 }
 
 #[derive(Debug, Clone, ValueEnum, Hash, Ord, PartialOrd, Eq, PartialEq)]

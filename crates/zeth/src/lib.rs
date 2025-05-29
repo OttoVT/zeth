@@ -16,6 +16,7 @@ use crate::cli::Cli;
 use crate::executor::build_executor_env;
 use alloy::network::Network;
 use alloy::primitives::{keccak256, B256};
+use anyhow::Context;
 use clap::Parser;
 use log::{error, info, warn};
 use reth_chainspec::NamedChain;
@@ -123,10 +124,62 @@ where
     )
     .await?;
 
+    // --- NEW LOGIC: Save Input If Requested ---
+    if let Some(ref output_base_path) = build_args.save_input {
+        // let rkyv_path = output_base_path.with_extension("rkyv.bin");
+        // let chain_path = output_base_path.with_extension("chain.bin");
+
+        /* info!("Saving guest input RKYV data to: {}", rkyv_path.display());
+        let mut rkyv_file = File::create(&rkyv_path)
+            .with_context(|| format!("Failed to create RKYV input file: {:?}", rkyv_path))?;
+        rkyv_file
+            .write_all(&build_result.encoded_rkyv_input)
+            .with_context(|| format!("Failed to write RKYV input file: {:?}", rkyv_path))?;
+        rkyv_file
+            .flush()
+            .context("Failed to flush RKYV input file")?;
+
+        info!("Saving guest input Chain data to: {}", chain_path.display());
+        let mut chain_file = File::create(&chain_path)
+            .with_context(|| format!("Failed to create Chain input file: {:?}", chain_path))?;
+        chain_file
+            .write_all(&build_result.encoded_chain_input)
+            .with_context(|| format!("Failed to write Chain input file: {:?}", chain_path))?;
+        chain_file
+            .flush()
+            .context("Failed to flush Chain input file")?; */
+
+        // THIS IS HOW WE SAVE THE INPUT
+        let mut input = Vec::<u8>::with_capacity(
+            4 + build_result.encoded_rkyv_input.len() + 4 + build_result.encoded_chain_input.len(),
+        );
+
+        // length-prefix + rkyv frame
+        input.extend_from_slice(&(build_result.encoded_rkyv_input.len() as u32).to_le_bytes());
+        input.extend_from_slice(&build_result.encoded_rkyv_input);
+
+        // length-prefix + chain frame
+        input.extend_from_slice(&(build_result.encoded_chain_input.len() as u32).to_le_bytes());
+        input.extend_from_slice(&build_result.encoded_chain_input);
+
+        let input_path = output_base_path.with_extension("input.bin");
+        info!("Saving guest input data to: {}", input_path.display());
+        let mut input_file = File::create(&input_path)
+            .with_context(|| format!("Failed to create input file: {:?}", input_path))?;
+        input_file
+            .write_all(&input)
+            .with_context(|| format!("Failed to write input file: {:?}", input_path))?;
+        input_file
+            .flush()
+            .context("Failed to flush input file")?;
+
+        info!("Guest input files saved successfully.");
+    }
+    // --- END NEW LOGIC ---
+
     if !cli.should_execute() {
         return Ok(());
     }
-
     // use the zkvm
     let computed_journal = if cli.should_prove() {
         info!("Proving ...");
