@@ -64,12 +64,11 @@ test-cache-op +ARGS="": (build ARGS)
     RUST_LOG=info ./target/debug/zeth-optimism build --cache=bin/optimism/data -c=optimism-sepolia -b=17664000
 
 # add block number to the input
-create-input block-number:
+create-input block-number rpc-url output-dir:
     RUST_LOG=info ./target/release/zeth-ethereum build \
-    --rpc=https://eth-mainnet.g.alchemy.com/v2/5Ffdp3h5ZITHDHGv69_5rRdqgWtKM6EW \
-    --cache=bin/ethereum/data \
+    --rpc={{rpc-url}} \
     --block-number={{block-number}} \
-    --save-input ./output/block_{{block-number}}_input
+    --save-input {{output-dir}}/block_{{block-number}}_input
 
 prove block-number:
     RUST_LOG=info ./target/release/zeth-ethereum prove \
