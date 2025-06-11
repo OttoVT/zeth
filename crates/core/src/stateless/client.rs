@@ -14,6 +14,7 @@
 
 use crate::driver::CoreDriver;
 use crate::rescue::{Recoverable, Wrapper};
+use crate::serde_pot_compat::{HeaderPot, BlockPot};
 use crate::stateless::data::{
     RkyvStatelessClientData, StatelessClientChainData, StatelessClientData,
 };
@@ -22,6 +23,7 @@ use crate::stateless::execute::ExecutionStrategy;
 use crate::stateless::finalize::FinalizationStrategy;
 use crate::stateless::initialize::InitializationStrategy;
 use crate::stateless::validate::ValidationStrategy;
+use pot::Compatibility;
 
 pub trait StatelessClient<Driver, Database>
 where
@@ -39,14 +41,51 @@ where
     ) -> anyhow::Result<StatelessClientData<Driver::Block, Driver::Header>> {
         let rkyv_data =
             rkyv::from_bytes::<RkyvStatelessClientData, rkyv::rancor::Error>(rkyv_slice)?;
-        let chain_data =
-            pot::from_slice::<StatelessClientChainData<Driver::Block, Driver::Header>>(pot_slice)?;
-        Ok(StatelessClientData::<Driver::Block, Driver::Header>::from_parts(rkyv_data, chain_data))
+
+        // Pot deserialization with compatibility mode for integers.
+        let chain_data: StatelessClientChainData<Driver::Block, Driver::Header> =
+            pot::Config::new()
+                .compatibility(Compatibility::Full)
+                .deserialize_from(pot_slice)?;
+
+        Ok(StatelessClientData::<Driver::Block, Driver::Header>::from_parts(
+            rkyv_data,
+            chain_data,
+        ))
+    }
+
+    // Specialized version for Ethereum headers that expects HeaderPot in pot_slice
+    fn data_from_parts_eth(
+        rkyv_slice: &[u8],
+        pot_slice: &[u8],
+    ) -> anyhow::Result<StatelessClientData<reth_primitives::Block, reth_primitives::Header>> {
+        let rkyv_data =
+            rkyv::from_bytes::<RkyvStatelessClientData, rkyv::rancor::Error>(rkyv_slice)?;
+
+        // Deserialize using BlockPot and HeaderPot for complete POT compatibility
+        let pot_chain_data: StatelessClientChainData<BlockPot, HeaderPot> =
+            pot::Config::new()
+                .compatibility(Compatibility::Full)
+                .deserialize_from(pot_slice)?;
+
+        // Convert back to reth_primitives types
+        let chain_data: StatelessClientChainData<reth_primitives::Block, reth_primitives::Header> = StatelessClientChainData {
+            blocks: pot_chain_data.blocks.into_iter().map(reth_primitives::Block::from).collect(),
+            parent_header: reth_primitives::Header::from(pot_chain_data.parent_header),
+            ancestor_headers: pot_chain_data.ancestor_headers.into_iter().map(reth_primitives::Header::from).collect(),
+        };
+
+        Ok(StatelessClientData::<reth_primitives::Block, reth_primitives::Header>::from_parts(
+            rkyv_data,
+            chain_data,
+        ))
     }
 
     fn data_from_slice(
         slice: &[u8],
     ) -> anyhow::Result<StatelessClientData<Driver::Block, Driver::Header>> {
+        // The `pot` format is self-describing and compatibility is handled automatically
+        // during deserialization.
         Ok(pot::from_slice(slice)?)
     }
 

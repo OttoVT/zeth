@@ -17,4 +17,6 @@ pub mod driver;
 pub mod map;
 pub mod mpt;
 pub mod rescue;
+pub mod serde_pot_compat;
 pub mod stateless;
+pub mod tx_wire;

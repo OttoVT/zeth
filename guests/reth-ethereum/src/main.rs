@@ -26,8 +26,9 @@ fn main() {
     let stateless_client_data_rkyv = env::read_frame();
     let stateless_client_data_pot = env::read_frame();
     env::log("Deserializing input data");
+    // Use HeaderPot deserialization for Ethereum
     let stateless_client_data =
-        <RethStatelessClient as StatelessClient<RethCoreDriver, MemoryDB>>::data_from_parts(
+        <RethStatelessClient as StatelessClient<RethCoreDriver, MemoryDB>>::data_from_parts_eth(
             &stateless_client_data_rkyv,
             &stateless_client_data_pot,
         )

@@ -29,6 +29,7 @@ impl DatabaseRef for UnreachableDB {
     }
 
     fn code_by_hash_ref(&self, code_hash: B256) -> Result<Bytecode, Self::Error> {
+        eprintln!("🚨 MISSING CONTRACT CODE HASH: {code_hash:#x}");
         unreachable!("code_by_hash_ref {code_hash}")
     }
 

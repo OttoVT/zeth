@@ -15,7 +15,7 @@
 use crate::db::PreflightDB;
 use crate::driver::PreflightDriver;
 use crate::provider::db::ProviderDB;
-use crate::provider::query::{BlockQuery, UncleQuery};
+use crate::provider::query::{AccountQuery, BlockQuery, UncleQuery};
 use crate::provider::{new_provider, Provider};
 use alloy::network::Network;
 use alloy::primitives::map::{AddressHashMap, B256Set, HashSet};
@@ -215,6 +215,52 @@ where
             info!("Saving provider cache ...");
             preflight_db.save_provider()?;
 
+            // Collect contract code for all accounts with non-empty code hashes
+            info!("Collecting contract code from account proofs...");
+            let provider = preflight_db.inner.db.db.borrow().db.borrow_db().provider.clone();
+            let empty_code_hash = keccak256([]);
+            let block_no = preflight_db.inner.db.db.borrow().db.borrow_db().block_no;
+            
+            for (address, proof) in &initial_proofs {
+                if proof.code_hash != empty_code_hash {
+                    let query = AccountQuery { block_no, address: *address };
+                    match provider.borrow_mut().get_code(&query) {
+                        Ok(code) => {
+                            let expected_hash = keccak256(&code);
+                            if expected_hash == proof.code_hash {
+                                contracts.insert(code);
+                                eprintln!("✅ Collected contract code for {address}: {expected_hash:#x}");
+                            } else {
+                                eprintln!("⚠️  Hash mismatch for {address}: expected {}, got {expected_hash:#x}", proof.code_hash);
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("❌ Failed to get code for {address}: {e}");
+                        }
+                    }
+                }
+            }
+            
+            for (address, proof) in &latest_proofs {
+                if proof.code_hash != empty_code_hash && !contracts.iter().any(|c| keccak256(c) == proof.code_hash) {
+                    let query = AccountQuery { block_no, address: *address };
+                    match provider.borrow_mut().get_code(&query) {
+                        Ok(code) => {
+                            let expected_hash = keccak256(&code);
+                            if expected_hash == proof.code_hash {
+                                contracts.insert(code);
+                                eprintln!("✅ Collected contract code for {address}: {expected_hash:#x}");
+                            } else {
+                                eprintln!("⚠️  Hash mismatch for {address}: expected {}, got {expected_hash:#x}", proof.code_hash);
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("❌ Failed to get code for {address}: {e}");
+                        }
+                    }
+                }
+            }
+
             // collect the code of the used contracts
             let initial_db = preflight_db.inner.db.db.borrow();
             for code in initial_db.cache.contracts.values() {
@@ -222,6 +268,12 @@ where
             }
             drop(initial_db);
             info!("Collected contracts: {}", contracts.len());
+            
+            // DEBUG: Print all collected contract hashes
+            for contract_bytes in &contracts {
+                let hash = keccak256(contract_bytes);
+                eprintln!("witness contains code hash {hash:#x}");
+            }
 
             info!("Constructing tries from state proofs...");
 

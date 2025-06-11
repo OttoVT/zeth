@@ -28,7 +28,7 @@ use zeth_core_ethereum::RethValidationStrategy;
 use zeth_core_ethereum::{RethCoreDriver, RethExecutionStrategy};
 use zeth_preflight::client::PreflightClient;
 use zeth_preflight::driver::PreflightDriver;
-use zeth_preflight::BlockBuilder;
+use zeth_preflight::{BlockBuilder, EthBlockBuilder};
 
 #[derive(Clone)]
 pub struct RethBlockBuilder {
@@ -36,6 +36,12 @@ pub struct RethBlockBuilder {
 }
 
 impl BlockBuilder<Ethereum, MemoryDB, RethCoreDriver, RethPreflightDriver> for RethBlockBuilder {
+    type PreflightClient = RethPreflightClient;
+    type StatelessClient = RethStatelessClient;
+}
+
+// Ethereum-specific implementation that uses HeaderPot serialization
+impl EthBlockBuilder<Ethereum, MemoryDB, RethCoreDriver, RethPreflightDriver> for RethBlockBuilder {
     type PreflightClient = RethPreflightClient;
     type StatelessClient = RethStatelessClient;
 }

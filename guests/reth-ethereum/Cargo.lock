@@ -5775,9 +5775,11 @@ name = "zeth-core"
 version = "0.1.0"
 dependencies = [
  "alloy-consensus",
+ "alloy-eips",
  "alloy-primitives",
  "alloy-rlp",
  "anyhow",
+ "bincode",
  "k256",
  "pot",
  "reth-chainspec",
@@ -5787,13 +5789,17 @@ dependencies = [
  "risc0-ethereum-trie",
  "rkyv",
  "serde",
+ "serde_with",
 ]
 
 [[package]]
 name = "zeth-core-ethereum"
 version = "0.1.0"
 dependencies = [
+ "alloy-eips",
  "alloy-genesis",
+ "alloy-primitives",
+ "alloy-rlp",
  "anyhow",
  "k256",
  "once_cell",

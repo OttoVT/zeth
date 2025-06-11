@@ -62,3 +62,20 @@ test-cache-eth +ARGS="": (build ARGS)
 
 test-cache-op +ARGS="": (build ARGS)
     RUST_LOG=info ./target/debug/zeth-optimism build --cache=bin/optimism/data -c=optimism-sepolia -b=17664000
+
+create-input block-number rpc-url output-dir:
+    RUST_LOG=info ./target/release/zeth-ethereum build \
+    --rpc={{rpc-url}} \
+    --block-count=1 \
+    --cache=bin/ethereum/data \
+    --block-number={{block-number}} \
+    --save-input {{output-dir}}/block_{{block-number}}_input
+
+
+create-input-debug block-number rpc-url output-dir:
+    RUST_LOG=trace,zeth_preflight ./target/release/zeth-ethereum build \
+    --rpc={{rpc-url}} \
+    --block-count=1 \
+    --cache=bin/ethereum/data \
+    --block-number={{block-number}} \
+    --save-input {{output-dir}}/block_{{block-number}}_input 2>&1 | tee debug_missing_code.log

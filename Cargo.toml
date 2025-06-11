@@ -39,6 +39,7 @@ features = ["orphan", "rkyv", "rlp_serialize", "serde"]
 alloy = { version = "1.0.6", features = ["full"] }
 alloy-chains = "0.2.1"
 alloy-consensus = "1.0.6"
+alloy-eips = "1.0.6"
 alloy-genesis = "1.0.6"
 alloy-network-primitives = "1.0.6"
 alloy-primitives = { version = "1.1.2", default-features = false, features = [

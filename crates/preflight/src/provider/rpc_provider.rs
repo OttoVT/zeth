@@ -87,6 +87,7 @@ impl<N: Network> Provider<N> for RpcProvider<N> {
         let response = self.tokio_handle.block_on(
             self.http_client
                 .get_block_by_number(query.block_no.into())
+                .full()
                 .into_future(),
         )?;
 

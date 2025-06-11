@@ -81,7 +81,7 @@ where
             }
         }
         // Instantiate consensus engine
-        let consensus = EthBeaconConsensus::new(chain_spec);
+        let consensus = EthBeaconConsensus::new(chain_spec.clone());
         // Validate header (todo: seal beforehand to save rehashing costs)
         let sealed_block = SealedBlock::seal_slow(take(block));
         consensus
@@ -95,6 +95,27 @@ where
         consensus
             .validate_header_against_parent(sealed_block.sealed_header(), &sealed_parent_header)
             .context("validate_header_against_parent")?;
+        
+        // ❶ Shanghai + withdrawals None → insert empty list
+        // ❂ If the header forgot the root, compute & insert it
+        let mut unsealed_block = sealed_block.unseal();
+        if chain_spec.is_shanghai_active_at_timestamp(unsealed_block.header.timestamp)
+           && unsealed_block.body.withdrawals.is_none()
+        {
+            unsealed_block.body.withdrawals = Some(Vec::new().into());
+
+            // ❷ If the header forgot the root, compute & insert it  
+            if unsealed_block.header.withdrawals_root.is_none() {
+                use alloy_rlp::Encodable;
+                use alloy_primitives::keccak256;
+                let empty_withdrawals: alloy_eips::eip4895::Withdrawals = Vec::new().into();
+                let mut buf = Vec::new();
+                empty_withdrawals.encode(&mut buf);
+                unsealed_block.header.withdrawals_root = Some(keccak256(&buf));
+            }
+        }
+        let sealed_block = SealedBlock::seal_slow(unsealed_block);
+        
         // Check pre-execution block conditions
         consensus
             .validate_block_pre_execution(&sealed_block)
