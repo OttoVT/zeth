@@ -36,6 +36,7 @@ use zeth_core::stateless::data::{StatelessClientData, StorageEntry};
 use zeth_core::stateless::engine::StatelessClientEngine;
 use zeth_core::stateless::execute::ExecutionStrategy;
 use zeth_core::stateless::validate::ValidationStrategy;
+use reth_primitives;
 
 pub trait PreflightClient<N: Network, R: CoreDriver, P: PreflightDriver<R, N>>
 where
@@ -113,6 +114,30 @@ where
             provider_mut.advance()?;
         }
         ommers.reverse();
+
+        // ⚠️ EIP-4844 DETECTION: Check blocks for blob transactions BEFORE expensive processing
+        info!("🔍 Checking downloaded blocks for EIP-4844 blob transactions...");
+        for (i, block) in blocks.iter().enumerate() {
+            let block_no = block_no + i as u64;
+            let reth_block = P::derive_block(block.clone(), ommers[i].clone());
+            
+            // Check if this block contains EIP-4844 transactions (only for Ethereum/reth blocks)
+            // Use Any trait to safely check if this is a reth_primitives::Block
+            use std::any::Any;
+            let any_block = &reth_block as &dyn Any;
+            if let Some(reth_block) = any_block.downcast_ref::<reth_primitives::Block>() {
+                // Check for EIP-4844 transactions (type 0x3)
+                let has_eip4844 = reth_block.body.transactions.iter().any(|tx| {
+                    matches!(tx, reth_primitives::TransactionSigned::Eip4844(_))
+                });
+                
+                if has_eip4844 {
+                    warn!("🚫 Block {} contains EIP-4844 blob transactions - exiting with code 4", block_no);
+                    std::process::exit(4); // EIP-4844 exit code
+                }
+            }
+        }
+        info!("✅ No EIP-4844 transactions found in blocks - proceeding with expensive processing");
 
         // Create the provider DB with a fresh provider to reset block_no
         provider_mut.reset(block_no)?;

@@ -63,6 +63,9 @@ test-cache-eth +ARGS="": (build ARGS)
 test-cache-op +ARGS="": (build ARGS)
     RUST_LOG=info ./target/debug/zeth-optimism build --cache=bin/optimism/data -c=optimism-sepolia -b=17664000
 
+analyze-eip4844 rpc-url blocks="1000":
+    RUST_LOG=info ./target/release/eip4844-analyzer --rpc-url={{rpc-url}} --blocks={{blocks}}
+
 create-input block-number rpc-url output-dir:
     RUST_LOG=info ./target/release/zeth-ethereum build \
     --rpc={{rpc-url}} \

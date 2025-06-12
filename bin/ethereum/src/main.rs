@@ -18,11 +18,21 @@ use zeth_preflight_ethereum::RethBlockBuilder;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    zeth::run_eth::<RethBlockBuilder, _, _, _, _>(
+    let result = zeth::run_eth::<RethBlockBuilder, _, _, _, _>(
         ZETH_GUESTS_RETH_ETHEREUM_ELF,
         ZETH_GUESTS_RETH_ETHEREUM_ID,
         NamedChain::Mainnet,
         "ethereum",
     )
-    .await
+    .await;
+
+    match result {
+        Ok(()) => {
+            std::process::exit(zeth::EXIT_CODE_SUCCESS);
+        }
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            std::process::exit(zeth::EXIT_CODE_ERROR);
+        }
+    }
 }

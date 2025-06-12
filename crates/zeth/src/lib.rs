@@ -20,7 +20,6 @@ use anyhow::Context;
 use clap::Parser;
 use log::{error, info, warn};
 use reth_chainspec::NamedChain;
-use reth_primitives;
 use risc0_zkvm::{default_executor, default_prover, is_dev_mode, ProverOpts, Receipt};
 use std::fs::File;
 use std::io::{Read, Write};
@@ -33,6 +32,11 @@ use zeth_preflight::{BlockBuilder, EthBlockBuilder};
 
 pub mod cli;
 pub mod executor;
+
+/// Exit codes for the application
+pub const EXIT_CODE_SUCCESS: i32 = 0;
+pub const EXIT_CODE_ERROR: i32 = 1;
+pub const EXIT_CODE_EIP4844_FOUND: i32 = 4;
 
 pub async fn run<
     B: BlockBuilder<N, D, R, P> + Send + Sync + 'static,
