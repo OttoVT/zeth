@@ -18,6 +18,7 @@ use zeth_preflight_ethereum::RethBlockBuilder;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    println!("Image_id: {:x?}", ZETH_GUESTS_RETH_ETHEREUM_ID);
     let result = zeth::run_eth::<RethBlockBuilder, _, _, _, _>(
         ZETH_GUESTS_RETH_ETHEREUM_ELF,
         ZETH_GUESTS_RETH_ETHEREUM_ID,
