@@ -45,6 +45,10 @@ struct Cli {
     #[arg(long, global = true, default_value = "./cache")]
     cache_dir: PathBuf,
 
+    #[arg(long, global = true)]
+    /// Save the serialized guest input data to this file path (compatible with ExecutorEnvBuilder::write)
+    pub save_input: Option<PathBuf>,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -95,6 +99,14 @@ async fn main() -> anyhow::Result<()> {
     // always validate
     processor.validate(input.clone()).context("host validation failed")?;
     println!("Host validation successful");
+
+    if let Some(save_input) = &cli.save_input {
+        println!("Saving input data to: {:?}", save_input);
+        let serialized_input = risc0_zkvm::serde::to_vec(&input)
+            .context("failed to serialize input with risc0_zkvm::serde")?;
+        fs::write(save_input, bytemuck::cast_slice(&serialized_input))
+            .context("failed to write input data")?;
+    }
 
     // create proof if requested
     if let Commands::Prove(ProveCommand { segment_po2 }) = cli.command {
